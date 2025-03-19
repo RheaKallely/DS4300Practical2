@@ -69,7 +69,7 @@ def chunk_text(text, chunk_size=500, overlap=50):
     
     return chunks
 
-def process_notes_folder(folder_path="notes"):
+def process_notes_folder(folder_path="data/notes"):
     """
     Processes all PDFs and PPTX files in the 'notes' folder.
     Extracts, preprocesses, and chunks text from each file.
@@ -109,15 +109,21 @@ def process_notes_folder(folder_path="notes"):
         
     return all_chunks
 
-# Dynamically determine the path to the 'notes' folder (using the absolute path)
-folder_path = "/data/notes"  # Use the absolute path
+# Dynamically determine the path to the 'notes' folder and process files
+folder_path = "data/notes"  # Folder containing the notes (PDFs/PPTX)
 chunks = process_notes_folder(folder_path)
 
-# Save the chunks to a text file
-def save_chunks_to_file(chunks, output_file="/data/process_text"):
+# Save the chunks to a text file inside the process_text folder
+def save_chunks_to_file(chunks, output_folder="data/process_text"):
     """
-    Saves the processed chunks to a text file.
+    Saves the processed chunks to a text file in the specified folder.
     """
+    # Ensure the 'process_text' folder exists, if not, create it
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    output_file = os.path.join(output_folder, "processed_chunks.txt")
+    
     try:
         with open(output_file, "w", encoding="utf-8") as f:
             for i, chunk in enumerate(chunks):
