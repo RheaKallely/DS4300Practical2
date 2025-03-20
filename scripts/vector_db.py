@@ -14,7 +14,6 @@ VECTOR_PATHS = [
     "data/embedded/all-MiniLM-L6-v2_embeddings.npy",
     "data/embedded/all-mpnet-base-v2_embeddings.npy",
     "data/embedded/InstructorXL_embeddings.npy"
-
 ]
 TEXT_PATH = "data/process_text/processed_chunks.txt"
 EMBEDDING_DIM = 384
@@ -31,10 +30,6 @@ with open(TEXT_PATH, "r", encoding="utf-8") as f:
 
 # === Load Embedding Model ===
 embed_model = SentenceTransformer(f"sentence-transformers/{MODEL_NAME}")
-
-# === Ask the User ===
-question = input("❓ Ask a question: ")
-query_vec = embed_model.encode(question)
 
 # === Retrieval Functions ===
 def query_redis(query_vec):
@@ -67,35 +62,47 @@ def query_milvus(query_vec):
     )
     return [(hit.entity.get("text"), hit.distance) for hit in results[0]]
 
-# === Select DB and Query ===
-if VECTOR_BACKEND == "redis":
-    print("\n🔍 Using Redis for retrieval...")
-    top_chunks = query_redis(query_vec)
-elif VECTOR_BACKEND == "chroma":
-    print("\n🔍 Using Chroma for retrieval...")
-    top_chunks = query_chroma(query_vec)
-elif VECTOR_BACKEND == "milvus":
-    print("\n🔍 Using Milvus for retrieval...")
-    top_chunks = query_milvus(query_vec)
-else:
-    raise ValueError("Unsupported VECTOR_BACKEND. Choose redis, chroma, or milvus.")
+# === Continuous Question Loop ===
+while True:
+    question = input("❓ Ask a question (or type 'exit' to quit): ")
+   
+    # Exit condition
+    if question.lower() == 'exit':
+        print("Goodbye!")
+        break
+   
+    # Convert the question to embedding
+    query_vec = embed_model.encode(question)
 
-# === Build Prompt ===
-context = "\n\n".join([chunk for chunk, _ in top_chunks])
-prompt = f"""You are an assistant answering questions using the following course notes.
+    # === Select DB and Query ===
+    if VECTOR_BACKEND == "redis":
+        print("\n🔍 Using Redis for retrieval...")
+        top_chunks = query_redis(query_vec)
+    elif VECTOR_BACKEND == "chroma":
+        print("\n🔍 Using Chroma for retrieval...")
+        top_chunks = query_chroma(query_vec)
+    elif VECTOR_BACKEND == "milvus":
+        print("\n🔍 Using Milvus for retrieval...")
+        top_chunks = query_milvus(query_vec)
+    else:
+        raise ValueError("Unsupported VECTOR_BACKEND. Choose redis, chroma, or milvus.")
 
-NOTES:
-{context}
+    # === Build Prompt ===
+    context = "\n\n".join([chunk for chunk, _ in top_chunks])
+    prompt = f"""You are an assistant answering questions using the following course notes.
 
-QUESTION:
-{question}
+    NOTES:
+    {context}
 
-Answer:"""
+    QUESTION:
+    {question}
 
-# === Run LLM ===
-try:
-    response = ollama.chat(model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}])
-    print("\n🤖 Answer:")
-    print(response["message"]["content"])
-except Exception as e:
-    print(f"\n❌ Error running Ollama: {e}")
+    Answer:"""
+
+    # === Run LLM ===
+    try:
+        response = ollama.chat(model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}])
+        print("\n🤖 Answer:")
+        print(response["message"]["content"])
+    except Exception as e:
+        print(f"\n❌ Error running Ollama: {e}")
