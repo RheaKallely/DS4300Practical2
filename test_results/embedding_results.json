@@ -1,0 +1,17 @@
+{
+    "all-MiniLM-L6-v2": {
+        "embedding_time": 14.794757843017578,
+        "memory_used_MB": 729.28125,
+        "num_embeddings": 904
+    },
+    "all-mpnet-base-v2": {
+        "embedding_time": 34.452720165252686,
+        "memory_used_MB": 245.109375,
+        "num_embeddings": 904
+    },
+    "InstructorXL": {
+        "embedding_time": 165.09002494812012,
+        "memory_used_MB": 495.15625,
+        "num_embeddings": 904
+    }
+}
