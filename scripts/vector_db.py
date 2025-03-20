@@ -65,12 +65,12 @@ def query_milvus(query_vec):
 # === Continuous Question Loop ===
 while True:
     question = input("❓ Ask a question (or type 'exit' to quit): ")
-    
+   
     # Exit condition
     if question.lower() == 'exit':
         print("Goodbye!")
         break
-    
+   
     # Convert the question to embedding
     query_vec = embed_model.encode(question)
 
