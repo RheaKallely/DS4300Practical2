@@ -3,7 +3,7 @@ import re
 import fitz  
 from pptx import Presentation
 import nltk
-import tiktoken
+from transformers import AutoTokenizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
@@ -54,18 +54,17 @@ def preprocess_text(text):
 
     return ' '.join(tokens)
 
+tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
 def chunk_text(text, chunk_size=500, overlap=50):
     """
-    Splits text into chunks of a given size with a specified overlap.
-    Uses OpenAI's tiktoken tokenizer to count tokens accurately.
+    Splits text into chunks using a model-specific tokenizer.
     """
-    tokenizer = tiktoken.get_encoding("cl100k_base")  # OpenAI tokenizer
-    tokens = tokenizer.encode(text)
-    
+    tokens = tokenizer.encode(text, add_special_tokens=False)
     chunks = []
+    
     for i in range(0, len(tokens), chunk_size - overlap):
         chunk = tokens[i:i + chunk_size]
-        chunks.append(tokenizer.decode(chunk))  
+        chunks.append(tokenizer.decode(chunk))  # Convert tokens back to text
     
     return chunks
 
