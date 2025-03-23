@@ -8,7 +8,6 @@ from sentence_transformers import SentenceTransformer
 import ollama
 import os
 
-# === CONFIG ===
 MODEL_NAME = "all-MiniLM-L6-v2"
 VECTOR_PATHS = [
     "data/embedded/all-MiniLM-L6-v2_embeddings.npy",
@@ -21,17 +20,17 @@ REDIS_INDEX_NAME = "redis_MiniLM"
 CHROMA_COLLECTION = "chroma_MiniLM"
 MILVUS_COLLECTION = "milvus_MiniLM"
 OLLAMA_MODEL = "tinyllama"
-VECTOR_BACKEND = "milvus"  # Change to: "redis", "milvus", or "chroma"
+VECTOR_BACKEND = "milvus"  
 
-# === Load Chunks and Embeddings ===
+#Load chunks and embeddings 
 embeddings_list = [np.load(path) for path in VECTOR_PATHS]
 with open(TEXT_PATH, "r", encoding="utf-8") as f:
     text_chunks = [line.strip() for line in f if line.strip() and not line.startswith("---")]
 
-# === Load Embedding Model ===
+#Load embedding model 
 embed_model = SentenceTransformer(f"sentence-transformers/{MODEL_NAME}")
 
-# === Retrieval Functions ===
+#Retrieval functions 
 def query_redis(query_vec):
     r = redis.Redis(host="localhost", port=6379, db=0)
     q = (
@@ -62,7 +61,7 @@ def query_milvus(query_vec):
     )
     return [(hit.entity.get("text"), hit.distance) for hit in results[0]]
 
-# === Continuous Question Loop ===
+#Continuous question loop 
 while True:
     question = input("❓ Ask a question (or type 'exit' to quit): ")
    
@@ -71,10 +70,9 @@ while True:
         print("Goodbye!")
         break
    
-    # Convert the question to embedding
     query_vec = embed_model.encode(question)
 
-    # === Select DB and Query ===
+    #Select database and query 
     if VECTOR_BACKEND == "redis":
         print("\n🔍 Using Redis for retrieval...")
         top_chunks = query_redis(query_vec)
@@ -87,7 +85,7 @@ while True:
     else:
         raise ValueError("Unsupported VECTOR_BACKEND. Choose redis, chroma, or milvus.")
 
-    # === Build Prompt ===
+    #Question prompt 
     context = "\n\n".join([chunk for chunk, _ in top_chunks])
     prompt = f"""You are an assistant answering questions using the following course notes.
 
@@ -99,7 +97,7 @@ while True:
 
     Answer:"""
 
-    # === Run LLM ===
+    #Run LLM 
     try:
         response = ollama.chat(model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}])
         print("\n🤖 Answer:")

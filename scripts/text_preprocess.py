@@ -6,8 +6,6 @@ import nltk
 from transformers import AutoTokenizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-
-# Download necessary resources from NLTK
 nltk.download('punkt')
 nltk.download('stopwords')
 
@@ -45,8 +43,8 @@ def preprocess_text(text):
     - Removing stopwords
     """
     text = text.lower()
-    text = re.sub(r'\s+', ' ', text).strip()  # Remove extra spaces
-    text = re.sub(r'[^\w\s]', '', text)  # Remove punctuation
+    text = re.sub(r'\s+', ' ', text).strip()  
+    text = re.sub(r'[^\w\s]', '', text)  
     
     tokens = word_tokenize(text)
     stop_words = set(stopwords.words('english'))
@@ -64,7 +62,7 @@ def chunk_text(text, chunk_size=500, overlap=50):
     
     for i in range(0, len(tokens), chunk_size - overlap):
         chunk = tokens[i:i + chunk_size]
-        chunks.append(tokenizer.decode(chunk))  # Convert tokens back to text
+        chunks.append(tokenizer.decode(chunk))
     
     return chunks
 
@@ -73,7 +71,6 @@ def process_notes_folder(folder_path="data/notes"):
     Processes all PDFs and PPTX files in the 'notes' folder.
     Extracts, preprocesses, and chunks text from each file.
     """
-    # Ensure the 'notes' folder exists
     if not os.path.exists(folder_path):
         print(f"Error: The folder '{folder_path}' does not exist!")
         return []
@@ -92,32 +89,28 @@ def process_notes_folder(folder_path="data/notes"):
             text = extract_text_from_pptx(file_path)
         
         else:
-            continue  # Skip non-PDF/PPTX files
+            continue  
         
-        if text.strip():  # Ensure the text is not empty
+        if text.strip(): 
             clean_text = preprocess_text(text)
-
-            # Generate chunks with different sizes and overlaps
             chunk_sizes = [200, 500, 1000]
             overlaps = [0, 50, 100]
             
             for chunk_size in chunk_sizes:
                 for overlap in overlaps:
                     chunks = chunk_text(clean_text, chunk_size, overlap)
-                    all_chunks.extend(chunks)  # Store all chunks
+                    all_chunks.extend(chunks) 
         
     return all_chunks
 
-# Dynamically determine the path to the 'notes' folder and process files
-folder_path = "data/notes"  # Folder containing the notes (PDFs/PPTX)
+folder_path = "data/notes" 
 chunks = process_notes_folder(folder_path)
 
-# Save the chunks to a text file inside the process_text folder
+# Save the chunks to a text file 
 def save_chunks_to_file(chunks, output_folder="data/process_text"):
     """
     Saves the processed chunks to a text file in the specified folder.
     """
-    # Ensure the 'process_text' folder exists, if not, create it
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     
@@ -131,10 +124,7 @@ def save_chunks_to_file(chunks, output_folder="data/process_text"):
     except Exception as e:
         print(f"Error saving chunks to file: {e}")
 
-# Save the chunks
 save_chunks_to_file(chunks)
-
-# Optionally, display some sample chunks
 print("\nSample Chunks:")
-for i, chunk in enumerate(chunks[:3]):  # Show first 3 chunks
+for i, chunk in enumerate(chunks[:3]):  
     print(f"\n--- Chunk {i+1} ---\n{chunk}\n")

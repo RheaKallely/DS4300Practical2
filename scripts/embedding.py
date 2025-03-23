@@ -9,13 +9,13 @@ from sentence_transformers import SentenceTransformer
 models = {
     "all-MiniLM-L6-v2": "sentence-transformers/all-MiniLM-L6-v2",
     "all-mpnet-base-v2": "sentence-transformers/all-mpnet-base-v2",
-    "InstructorXL": "hkunlp/instructor-xl",  # Example model from Huggingface
+    "InstructorXL": "hkunlp/instructor-xl",  
 }
 
 # Function to get memory usage
 def get_memory_usage():
     process = psutil.Process(os.getpid())
-    return process.memory_info().rss / (1024 * 1024)  # Memory in MB
+    return process.memory_info().rss / (1024 * 1024)  
 
 # Function to read text chunks from file
 def load_text_chunks(file_path="data/process_text/processed_chunks.txt"):
@@ -34,11 +34,10 @@ def embed_text_with_model(model_name, model_path, text_chunks):
     print(f"Embedding using model: {model_name}")
     
     try:
-        # Load the model
         model = SentenceTransformer(model_path)
     except Exception as e:
         print(f"Error loading model {model_name}: {e}")
-        return None, None, None, None  # Return None if the model fails to load
+        return None, None, None, None 
 
     embeddings = []
     
@@ -60,14 +59,13 @@ def embed_text_with_model(model_name, model_path, text_chunks):
     memory_used = end_memory - start_memory
     num_embeddings = len(embeddings)
 
-    # Print results
     print(f"Embedding Time: {embedding_time:.2f} seconds")
     print(f"Memory Used: {memory_used:.2f} MB")
     print(f"Number of embeddings: {num_embeddings}")
 
     return embedding_time, memory_used, num_embeddings, embeddings
 
-# Save the results to a JSON file in "test_results/"
+# Save the results to a JSON file 
 def save_results_to_file(results, output_folder="test_results/"):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -82,7 +80,7 @@ def save_results_to_file(results, output_folder="test_results/"):
     except Exception as e:
         print(f"Error saving results to file: {e}")
 
-# Save embeddings separately as .npy in "data/embedded/"
+# Save embeddings 
 def save_embeddings_to_npy(embeddings, model_name, output_folder="data/embedded/"):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -106,7 +104,6 @@ def compare_models_on_chunks(text_chunks):
             }
             save_embeddings_to_npy(embeddings, model_name)
 
-    # Save results
     save_results_to_file(results)
 
 # Load text chunks from file
