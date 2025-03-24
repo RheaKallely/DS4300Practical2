@@ -1,8 +1,9 @@
 import numpy as np
 import redis
 import chromadb
+from chromadb import PersistentClient
 from chromadb.config import Settings
-from pymilvus import connections, Collection
+from pymilvus import connections, Collection, CollectionSchema, FieldSchema, DataType, utility
 from redis.commands.search.query import Query
 from sentence_transformers import SentenceTransformer
 import ollama
@@ -10,9 +11,9 @@ import os
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 VECTOR_PATHS = [
-    "data/embedded/all-MiniLM-L6-v2_embeddings.npy",
-    "data/embedded/all-mpnet-base-v2_embeddings.npy",
-    "data/embedded/InstructorXL_embeddings.npy"
+   "data/embedded/all-MiniLM-L6-v2_embeddings.npy",
+   "data/embedded/all-mpnet-base-v2_embeddings.npy",
+   "data/embedded/InstructorXL_embeddings.npy"
 ]
 TEXT_PATH = "data/process_text/processed_chunks.txt"
 EMBEDDING_DIM = 384
@@ -20,15 +21,51 @@ REDIS_INDEX_NAME = "redis_MiniLM"
 CHROMA_COLLECTION = "chroma_MiniLM"
 MILVUS_COLLECTION = "milvus_MiniLM"
 OLLAMA_MODEL = "tinyllama"
-VECTOR_BACKEND = "milvus"  
+VECTOR_BACKEND = "milvus"
 
-#Load chunks and embeddings 
+# Load chunks and embeddings
 embeddings_list = [np.load(path) for path in VECTOR_PATHS]
 with open(TEXT_PATH, "r", encoding="utf-8") as f:
-    text_chunks = [line.strip() for line in f if line.strip() and not line.startswith("---")]
+   text_chunks = [line.strip() for line in f if line.strip() and not line.startswith("---")]
 
-#Load embedding model 
+# Load embedding model
 embed_model = SentenceTransformer(f"sentence-transformers/{MODEL_NAME}")
+
+connections.connect("default", host="localhost", port="19530")
+def setup_milvus(model_name: str):
+   """Sets up Milvus: Replaces existing data if the collection exists, otherwise creates a new collection."""
+   sanitized_model_name = model_name.replace("-", "_")
+   embedding_file = f"data/embedded/{model_name}_embeddings.npy"
+   embeddings = np.load(embedding_file, allow_pickle=True).tolist()
+
+   connections.connect(host="localhost", port="19530")
+
+   if utility.has_collection(sanitized_model_name):
+       collection = Collection(sanitized_model_name)
+       collection.drop()
+
+   fields = [
+       FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=False),
+       FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=len(embeddings[0]))
+   ]
+   schema = CollectionSchema(fields, description="Embeddings collection")
+   collection = Collection(name=sanitized_model_name, schema=schema)
+
+   collection.create_index(field_name="embedding", index_params={
+       "index_type": "IVF_FLAT", "metric_type": "COSINE", "params": {"nlist": 128}
+   })
+
+   ids = list(range(len(embeddings)))
+   data_to_insert = [ids, embeddings]
+   collection.insert(data_to_insert)
+
+   collection.load()
+   print("Milvus setup completed successfully")
+   return collection
+# Initialize the databases
+model = MODEL_NAME
+milvus_collection = setup_milvus(model)
+
 
 #Retrieval functions 
 def query_redis(query_vec):

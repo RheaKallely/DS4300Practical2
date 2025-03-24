@@ -1,15 +1,15 @@
 REDIS
-Latency: 0.0336 sec
-Memory Used: 0.03 MB
+Latency: 0.1760 sec
+Memory Used: 0.02 MB
 Top Chunks: []
 
 CHROMA
-Latency: 1.8672 sec
-Memory Used: 2.43 MB
+Latency: 2.0279 sec
+Memory Used: 2.88 MB
 Top Chunks: []
 
 MILVUS
-Latency: 0.3179 sec
-Memory Used: 3.88 MB
+Latency: 0.2669 sec
+Memory Used: 3.68 MB
 Top Chunks: [('Collections - a set of records of the same entity type - a table', 0.8209054470062256)]
 
