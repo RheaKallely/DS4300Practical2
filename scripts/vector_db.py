@@ -2,7 +2,9 @@ import numpy as np
 import redis
 import chromadb
 from chromadb import PersistentClient
+from chromadb import PersistentClient
 from chromadb.config import Settings
+from pymilvus import connections, Collection, CollectionSchema, FieldSchema, DataType, utility
 from pymilvus import connections, Collection, CollectionSchema, FieldSchema, DataType, utility
 from redis.commands.search.query import Query
 from sentence_transformers import SentenceTransformer
@@ -10,9 +12,9 @@ import ollama
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 VECTOR_PATHS = [
-    "data/embedded/all-MiniLM-L6-v2_embeddings.npy",
-    "data/embedded/all-mpnet-base-v2_embeddings.npy",
-    "data/embedded/InstructorXL_embeddings.npy"
+   "data/embedded/all-MiniLM-L6-v2_embeddings.npy",
+   "data/embedded/all-mpnet-base-v2_embeddings.npy",
+   "data/embedded/InstructorXL_embeddings.npy"
 ]
 TEXT_PATH = "data/process_text/processed_chunks.txt"
 EMBEDDING_DIM = 384
@@ -23,10 +25,12 @@ OLLAMA_MODEL = "mistral"
 VECTOR_BACKEND = "chroma"
 
 # Load chunks and embeddings
+# Load chunks and embeddings
 embeddings_list = [np.load(path) for path in VECTOR_PATHS]
 with open(TEXT_PATH, "r", encoding="utf-8") as f:
-    text_chunks = [line.strip() for line in f if line.strip() and not line.startswith("---")]
+   text_chunks = [line.strip() for line in f if line.strip() and not line.startswith("---")]
 
+# Load embedding model
 # Load embedding model
 embed_model = SentenceTransformer(f"sentence-transformers/{MODEL_NAME}")
 
