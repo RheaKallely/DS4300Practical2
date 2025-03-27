@@ -1,12 +1,12 @@
 import numpy as np
 import redis
 import chromadb
+from chromadb import PersistentClient
 from chromadb.config import Settings
-from pymilvus import connections, Collection
+from pymilvus import connections, Collection, CollectionSchema, FieldSchema, DataType, utility
 from redis.commands.search.query import Query
 from sentence_transformers import SentenceTransformer
 import ollama
-import os
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 VECTOR_PATHS = [
@@ -19,18 +19,120 @@ EMBEDDING_DIM = 384
 REDIS_INDEX_NAME = "redis_MiniLM"
 CHROMA_COLLECTION = "chroma_MiniLM"
 MILVUS_COLLECTION = "milvus_MiniLM"
-OLLAMA_MODEL = "tinyllama"
-VECTOR_BACKEND = "milvus"  
+OLLAMA_MODEL = "mistral"
+VECTOR_BACKEND = "chroma"
 
-#Load chunks and embeddings 
+# Load chunks and embeddings
 embeddings_list = [np.load(path) for path in VECTOR_PATHS]
 with open(TEXT_PATH, "r", encoding="utf-8") as f:
     text_chunks = [line.strip() for line in f if line.strip() and not line.startswith("---")]
 
-#Load embedding model 
+# Load embedding model
 embed_model = SentenceTransformer(f"sentence-transformers/{MODEL_NAME}")
 
-#Retrieval functions 
+connections.connect("default", host="localhost", port="19530")
+redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+
+def setup_milvus(model_name: str):
+    """Sets up Milvus: Replaces existing data if the collection exists, otherwise creates a new collection."""
+    sanitized_model_name = model_name.replace("-", "_")
+    embedding_file = f"data/embedded/{model_name}_embeddings.npy"
+    embeddings = np.load(embedding_file, allow_pickle=True).tolist()
+
+    connections.connect(host="localhost", port="19530")
+
+    if utility.has_collection(sanitized_model_name):
+        collection = Collection(sanitized_model_name)
+        collection.drop()
+
+    fields = [
+        FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=False),
+        FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=len(embeddings[0]))
+    ]
+    schema = CollectionSchema(fields, description="Embeddings collection")
+    collection = Collection(name=sanitized_model_name, schema=schema)
+
+    collection.create_index(field_name="embedding", index_params={
+        "index_type": "IVF_FLAT", "metric_type": "COSINE", "params": {"nlist": 128}
+    })
+
+    ids = list(range(len(embeddings)))
+    data_to_insert = [ids, embeddings]
+    collection.insert(data_to_insert)
+
+    collection.load()
+    print("Milvus setup completed successfully")
+    return collection
+
+def setup_redis(model_name: str):
+    """Sets up Redis with vector search index."""
+    embedding_file = f"data/embedded/{model_name}_embeddings.npy"
+    embeddings = np.load(embedding_file, allow_pickle=True).tolist()
+
+    dummy_texts = [f"Document {i} text" for i in range(len(embeddings))]
+
+    r = redis.Redis(host="localhost", port=6379, db=0, decode_responses=False)
+    # Clears existing data
+    r.flushdb()
+
+    pipeline = r.pipeline()
+    for idx, (emb, text) in enumerate(zip(embeddings, dummy_texts)):
+        key = f"{model_name}:{idx}"
+        pipeline.hset(key, mapping={
+            "embedding": np.array(emb, dtype=np.float32).tobytes(),
+            "text": text.encode("utf-8")
+        })
+    pipeline.execute()
+
+    try:
+        r.ft(REDIS_INDEX_NAME).info()
+    except redis.exceptions.ResponseError:
+        r.ft(REDIS_INDEX_NAME).create_index([
+            redis.commands.search.field.TagField("id"),
+            redis.commands.search.field.VectorField(
+                "embedding", "FLAT", {"TYPE": "FLOAT32", "DIM": EMBEDDING_DIM, "DISTANCE_METRIC": "COSINE"}
+            ),
+            redis.commands.search.field.TextField("text")
+        ])
+
+    print("Redis setup completed successfully")
+    return r
+
+
+
+
+def setup_chroma(model_name: str):
+    """Sets up ChromaDB by clearing the existing collection (if data exists) and re-indexing the embeddings."""
+    client = chromadb.HttpClient(host="localhost", port=8000)  # Connect to ChromaDB running in Docker
+    collection = client.get_or_create_collection(name=CHROMA_COLLECTION)
+
+    # Check if collection contains existing data
+    existing_docs = collection.get()  # Retrieve existing documents
+    if existing_docs and "ids" in existing_docs and existing_docs["ids"]:
+        collection.delete(ids=existing_docs["ids"])  # Delete all documents by ID
+
+    # Load the embeddings and index them
+    embedding_file = f"data/embedded/{model_name}_embeddings.npy"
+    embeddings = np.load(embedding_file, allow_pickle=True).tolist()
+
+    ids = [str(i) for i in range(len(embeddings))]  # Ensure IDs are strings
+    metadata = [{"index": i} for i in range(len(embeddings))]
+
+    collection.add(ids=ids, embeddings=embeddings, metadatas=metadata)
+    print("Chroma setup completed successfully")
+
+    return collection
+
+
+
+# Initialize the databases
+model = MODEL_NAME
+milvus_collection = setup_milvus(model)
+redis_client = setup_redis(model)
+chroma_collection = setup_chroma(model)
+
+# Retrieval functions
 def query_redis(query_vec):
     r = redis.Redis(host="localhost", port=6379, db=0)
     q = (
@@ -61,18 +163,16 @@ def query_milvus(query_vec):
     )
     return [(hit.entity.get("text"), hit.distance) for hit in results[0]]
 
-#Continuous question loop 
+# Continuous question loop
 while True:
     question = input("❓ Ask a question (or type 'exit' to quit): ")
    
-    # Exit condition
     if question.lower() == 'exit':
         print("Goodbye!")
         break
    
     query_vec = embed_model.encode(question)
 
-    #Select database and query 
     if VECTOR_BACKEND == "redis":
         print("\n🔍 Using Redis for retrieval...")
         top_chunks = query_redis(query_vec)
@@ -85,7 +185,6 @@ while True:
     else:
         raise ValueError("Unsupported VECTOR_BACKEND. Choose redis, chroma, or milvus.")
 
-    #Question prompt 
     context = "\n\n".join([chunk for chunk, _ in top_chunks])
     prompt = f"""You are an assistant answering questions using the following course notes.
 
@@ -97,7 +196,6 @@ while True:
 
     Answer:"""
 
-    #Run LLM 
     try:
         response = ollama.chat(model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}])
         print("\n🤖 Answer:")
