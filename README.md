@@ -1,7 +1,5 @@
 # DS 43000 Retrieval-Augmented Generation system
 
-# Retrieval-Augmented Generation (RAG) System Setup Guide
-
 ## Table of Contents
 1. [Overview](#overview)
 2. [Required Downloads & Installations](#required-downloads--installations)
