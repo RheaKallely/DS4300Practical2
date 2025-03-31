@@ -1,0 +1,14 @@
+
+Starting Memory Usage Test for all-mpnet-base-v2...
+Memory Before Setup: 449.34 MB
+Memory After Redis Setup: 449.39 MB (Redis Setup Time: 0.2383 seconds)
+Memory After Milvus Setup: 479.00 MB (Milvus Setup Time: 1.5019 seconds)
+Memory After Chroma Setup: 516.52 MB (Chroma Setup Time: 1.0348 seconds)
+
+Starting Query Speed Test...
+Milvus Query Time: 0.0098 seconds
+Redis Query Time: 0.0038 seconds
+Chroma Query Time: 0.0061 seconds
+Query Test Time: 0.0197 seconds
+Memory After Query Test: 485.56 MB
+Total Memory Usage During Test: 36.22 MB

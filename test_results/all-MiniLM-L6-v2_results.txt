@@ -1,0 +1,14 @@
+
+Starting Memory Usage Test for all-MiniLM-L6-v2...
+Memory Before Setup: 421.09 MB
+Memory After Redis Setup: 421.22 MB (Redis Setup Time: 0.2672 seconds)
+Memory After Milvus Setup: 439.59 MB (Milvus Setup Time: 1.0361 seconds)
+Memory After Chroma Setup: 456.95 MB (Chroma Setup Time: 0.8804 seconds)
+
+Starting Query Speed Test...
+Milvus Query Time: 0.0104 seconds
+Redis Query Time: 0.0026 seconds
+Chroma Query Time: 0.0034 seconds
+Query Test Time: 0.0163 seconds
+Memory After Query Test: 445.28 MB
+Total Memory Usage During Test: 24.19 MB

@@ -1,0 +1,14 @@
+
+Starting Memory Usage Test for InstructorXL...
+Memory Before Setup: 489.48 MB
+Memory After Redis Setup: 489.59 MB (Redis Setup Time: 0.2649 seconds)
+Memory After Milvus Setup: 271.78 MB (Milvus Setup Time: 1.1198 seconds)
+Memory After Chroma Setup: 288.97 MB (Chroma Setup Time: 1.0844 seconds)
+
+Starting Query Speed Test...
+Milvus Query Time: 0.0709 seconds
+Redis Query Time: 0.0333 seconds
+Chroma Query Time: 0.0584 seconds
+Query Test Time: 0.1631 seconds
+Memory After Query Test: 123.41 MB
+Total Memory Usage During Test: -366.08 MB
