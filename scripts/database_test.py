@@ -14,7 +14,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 MODEL_NAMES = {
     "all-MiniLM-L6-v2": "sentence-transformers/all-MiniLM-L6-v2",
     "all-mpnet-base-v2": "sentence-transformers/all-mpnet-base-v2",
-    "InstructorXL": "hkunlp/instructor-xl"  # Correct Hugging Face name
+    "InstructorXL": "hkunlp/instructor-xl"
 }
 
 VECTOR_PATHS = [
